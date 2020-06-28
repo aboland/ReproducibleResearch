@@ -1,0 +1,211 @@
+---
+title: "Sharing R code using Docker"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+Ever had problems with sharing code? Missing libraries or different versions of R. One solution is to use Docker as a method for sharing work.
+
+<!-- In this piece, I focus on R, however the example I created has a version of Python included with it and so Python scripts could be shared in a similar way. -->
+
+Docker is a very useful method of creating and running isolated versions of software. It is useful because working versions of software can be built and run using only the necessary libraries. 
+Another useful feature is that the libraries used to build the software are fixed and when shared the Docker image will run identically on different machines.  
+For example, if you build and run a simulation using R 3.6.0, you can build a Docker image containing your code which runs R 3.6.0. This image can be shared with anyone and when run, they will be able to use your code in R 3.6.0, an exact replica of the environment you originally used.
+
+## Getting Started
+
+For an introduction to Docker and help with installation and setup, see the following page (4 min read),
+[docs.docker.com/get-started/](https://docs.docker.com/get-started/).
+
+## Docker and R
+
+There are many different R and Rstudio images  
+
+Official R images can be found here:
+[https://hub.docker.com/_/r-base](https://hub.docker.com/_/r-base)
+
+While RStudio and Shiny images can be found here:
+[https://hub.docker.com/u/rocker](https://hub.docker.com/u/rocker)
+
+Images can be downloaded using  
+`docker pull rocker/rstudio`  
+or, when `docker run` is used if the image is not found on your system it will be downloaded.
+
+
+### Starting an RStudio Container
+
+To run an RStudio image, in terminal use the following command
+```{bash, eval =FALSE}
+docker run -detach -p 8787:8787 -e PASSWORD=yourpassword --name my-rstudio rocker/rstudio
+```
+
+This starts a 'container' using the specified image. When an image is running on your computer it is referred to as a container, you can have many containers running simultaneously on your machine.
+
+There are a few other things to note, namely the flags used in the run command  
+
+- `-detach` or `-d` for short, runs the container in the background of your terminal.
+- `--publish` or `-p` forwards the port on your machine to the containers port, this is important for running RStudio and/or a Shiny server as a container. It is even more important when running multiple containers.
+- `--name` gives a name to your container, this is useful for managing containers, stopping, restarting etc..
+- `-e` is used for environment variables, in this case the variable `PASSWORD` needs to be provided, any string can be chosen as the password.
+
+
+To check the containers currently running on your machine use `docker ps --all`, you should see similar output to below.
+
+```{bash, eval =FALSE}
+$ docker ps --all
+
+CONTAINER ID  IMAGE                 COMMAND  CREATED        STATUS        PORTS                   NAMES
+96f368aefb83  rocker/rstudio:3.6.0  "/init"  9 seconds ago  Up 8 seconds  0.0.0.0:8787->8787/tcp  my-rstudio
+```
+
+
+#### Opening RStudio
+
+RStudio can now be opened by going to `localhost:8787` in a web browser. The user name will be `rstudio` and password will be the variable proved, in the case above `yourpassword`.
+
+#### Running multiple containers
+
+The `-p` flag in the run command determines which port RStudio can be found at. For example, if we used -`p 8000:8787` RStudio can be accessed using `localhost:8000` in a web browser. This is useful for running multiple versions of R and RStudio, each container will be completely isolated from each other.  
+
+Note: more advanced uses of Docker containers allow communication between containers, this will not be covered here.
+
+
+
+### Versions of R
+
+An important feature of docker images is version control, images can be 'tagged' with a version. In the case of the RStudio image the available tags can be found [here](https://hub.docker.com/r/rocker/rstudio/tags). To start a container with a specific tag, the tag name is added with a colon after the image name.
+
+For example, to use RStudio with the current development version of R:
+```{bash, eval = F}
+$ docker run -d -p 8001:8787 -e PASSWORD=yourpassword --name my-rstudio-devel rocker/rstudio:devel
+```  
+or to use version 3.6.0:
+```{bash, eval = F}
+$ docker run -d -p 8002:8787 -e PASSWORD=yourpassword --name my-rstudio-363 rocker/rstudio:3.6.3
+```
+
+As mentioned in the section above, both conatainers can be run simlutaneously. The development and 3.6.3 versions of R will be accesible in a web browser at `localhost:8001` and `localhost:8002` respectively.
+
+
+### Stopping Container
+
+To stop a container, the `docker rm` command can be used
+```{bash, eval =FALSE}
+$ docker rm --force my-rstudio-devel
+```
+or
+```{bash, eval =FALSE}
+$ docker rm --force my-rstudio-363
+```
+
+
+
+
+
+## Reproducible Research
+
+For reproducible research the environment used each time to run the code should match as much as possible. Things like the version of R, the version of individual libraries can have an effect on the final results.
+
+
+### Dockerfile
+
+To build a Docker image, you will need to create a Dockerfile. This file is essentially a configuration determining what libraries and files should be included in the image.
+
+
+
+<!-- RUN apt-get update \ -->
+<!--   && apt-get install -y --no-install-recommends \ -->
+  
+<!-- install2.r --error \ -->
+<!--     --deps TRUE  -->
+
+
+The Dockerfile starts with a base image, for example `FROM rocker/rstudio:4.0.0`. Everything else is built on top of this image.
+
+System libraries can be installed using 
+```
+RUN apt-get update && apt-get install libxml2
+```
+
+#### R Libraries
+
+The most straight forward way to install an R library is to use the `install2.r` command
+```
+RUN install2.r --error devtools
+```
+The `--error` flag ensures that the image build will fail if the R library fails to install.
+
+
+A specific version of a library can be installed using the `devtools` package
+```
+RUN R -e 'install.packages("devtools")'
+RUN R -e 'devtools::install("ggplot2", version = "3.3.0")'
+```
+
+
+#### Example Dockerfile
+
+To improve readability `\` can be used to spread single commands over multiple lines.
+
+```
+FROM rocker/rstudio:4.0.0
+
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends \
+  libxml2 \
+  git
+
+RUN install2.r --error \
+  --deps TRUE \
+  devtools \
+  ggplot2
+
+COPY Docker/Docker.Rmd /home/rstudio/
+COPY Docker/Simple_Example/sample_script.R /home/rstudio/
+```
+
+Some libraries can take a while to install, if you consistently use a certain set of libraries it may be useful to create aa image containing these libraries. This can be used as your base image to start from. For example, if you use many of the tidyverse libraries, these have a long installation time. A quicker way to build the above image starts with the `rocker/tidyverse:4.0.0` image.
+
+```
+FROM rocker/tidyverse:4.0.0
+
+COPY Docker/Docker.Rmd /home/rstudio/
+COPY Docker/Simple_Example/sample_script.R /home/rstudio/
+```
+
+
+### Building Image
+
+If there is a file named `Dockerfile` in the current working directory, the following command can be used to build an imaged named `my_image`
+
+```{bash, eval =FALSE}
+$ docker build --tag my_image .
+```
+
+The `-f` flag can be used to specify what Dockerfile to use.
+
+```{bash, eval =FALSE}
+$ docker build -t sample_rstudio:1.0 -f Docker/SampleDockerfile .
+```
+
+
+
+### Sharing Image
+
+[docs.docker.com/get-started/part3/](https://docs.docker.com/get-started/part3/)
+
+```{bash, eval =FALSE}
+$ docker tag sample_rstudio:1.0 bolandai/sample_rstudio:1.0
+$ docker push bolandai/sample_rstudio:1.0
+```
+
+
+`docker run -d -p 8001:8787 -e PASSWORD=yourpassword --name custom_rstudio bolandai/sample_rstudio`
+
+## Continous Integration (Git & Travis)
+
+

@@ -1,0 +1,7 @@
+FROM rocker/tidyverse:4.0.0
+
+COPY Docker/Docker.Rmd /home/rstudio/
+COPY Docker/sample_script.R /home/rstudio/
+
+# Change file ownership
+RUN chown -R rstudio:rstudio /home/rstudio/
