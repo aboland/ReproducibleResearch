@@ -1,5 +1,6 @@
 FROM rocker/tidyverse:4.0.0
 
+# Copy files into base RStudio directory
 COPY Docker/Docker.Rmd /home/rstudio/
 COPY Docker/sample_script.R /home/rstudio/
 
