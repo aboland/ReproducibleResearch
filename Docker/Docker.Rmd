@@ -15,27 +15,31 @@ library(knitr)
 Docker is a very useful method of creating and running isolated versions of software. It is useful because working versions of software can be built and run using only the necessary libraries. 
 Another useful feature is that the libraries used to build the software are fixed, and when sharing a Docker image it will run identically on different machines. For example, if you build and run a simulation using R 3.6.0, you can build a Docker image containing your code and R 3.6.0. This image can be shared with anyone and it will allow them to run your code using R 3.6.0, an exact replica of the environment you originally used.
 
-## Getting Started
+#### Installation
 
-For a more general introduction to Docker and help with installation and setup, see the following page: 
+This document gives an introduction with a focus on using R, for a more general introduction to Docker and help with installation and setup, see the following page: 
 [docs.docker.com/get-started](https://docs.docker.com/get-started/) (4 min read).
 
-#### Docker Images and Containers
 
-An image is a template for an environment, software and files. Images are created using a Dockerfile which is covered later in this document.
-A container is a runnable instance of an image. Once an image is created, a container can be started using this image; at this stage the software will be live on the host machine. For example, if an RStudio container is running, then a copy of RStudio will be available to use. This copy will be independent of any other local version of RStudio.
 
-You can have many containers running simultaneously on your machine, and in general they will be isolated and independent of each other.
+<br>
 
-Images and containers can be managed through commands on a terminal or a bash shell.
+## Introduction to Docker
+
+### Images and Containers
+
+A Docker image is a template for an environment, software and files. Images are created using a Dockerfile which is covered later in this document.
+A Docker container is a runnable instance of an image. Once an image is created, a container can be started using this image; at this stage the software will be live on the host machine. For example, if an RStudio container is running, then a copy of RStudio will be available to use. This copy will be independent of any other local version of RStudio.
+
+You can have many containers running simultaneously on your machine, and in general they will be isolated and independent of each other. Images and containers can be managed through commands on a terminal or a bash shell.
 
 <!-- For a more detailed explanation see [this guide](https://docs.docker.com/get-started/overview/). -->
  
 
 
-## Docker and R
+### Docker and R
 
-There are many different R and RStudio images.
+There are many different R and RStudio Docker images.
 
 Official R images can be found here:
 [https://hub.docker.com/_/r-base](https://hub.docker.com/_/r-base)
@@ -73,7 +77,7 @@ CONTAINER ID  IMAGE                 COMMAND  CREATED        STATUS        PORTS 
 
 #### Opening RStudio
 
-RStudio can now be opened by going to `localhost:8787` in a web browser. The username will be `rstudio` and password will be the variable provided. In the case above I picked `yourpassword`.
+RStudio can now be opened by going to [localhost:8787](http://localhost:8787/) in a web browser. The username will be `rstudio` and password will be the environment variable provided. In the case above I picked `yourpassword`.
 
 
 ```{r , echo = F, out.width=600, fig.align='center'}
@@ -82,7 +86,7 @@ include_graphics("images/rstudio_login.png")
 
 
 
-#### Running Multiple Containers
+### Running Multiple Containers
 
 The `-p` flag in the run command determines which port RStudio can be found at. For example, if we used `-p 8000:8787` RStudio will then be accessible using `localhost:8000` in a web browser. This is useful when running multiple versions of R and RStudio, because each container will need to be routed through a different port.
 
@@ -123,11 +127,11 @@ $ docker rm --force my-rstudio-363
 
 <br>
 
-## Reproducible Research
+## Building Your Own Image - Reproducible Research
 
 For reproducible research the environment used each time to run the code should match as much as possible. Details such as the version of R and the version of individual packages/libraries can have an effect on the final results.  
 
-We have seen that a specific version of R can be chosen when using Docker. R scripts can also be included in a custom Docker image. 
+We have seen that a specific version of R can be chosen when using Docker. R scripts and data can also be included in a custom Docker image. 
 
 A complete standalone environment can be created so that an end user does not need to worry about installing any extra libraries or having specific software installed. The only requirement is to have Docker installed.
 
@@ -196,7 +200,7 @@ $ docker build -t image_name -f mycustomedockerfile .
 
 ### Sharing Images
 
-Images can be stored and shared using the Docker central repository.
+Images can be stored and shared using the [Docker central repository](https://hub.docker.com/).
 
 The only requirement to run an image is to have Docker installed. A person would not need R or RStudio installed on their local machine. It's even possible to include a copy of LaTeX with an image so that PDF document's can be knitted.
 
@@ -212,7 +216,7 @@ $ docker push <Your Docker ID>/image_name:tag
 
 <br>
 
-#### Example
+### Example
 
 The following example uses the files contained in [this Github repository](https://github.com/aboland/ReproducibleResearch).
 
@@ -247,7 +251,7 @@ include_graphics("images/rstudio_example.png")
 
 # Advanced Use
 
-## Linking to local directory
+### Linking to local directory
 
 It was mentioned earlier that Docker containers are completely isolated. However, sometimes it is necessary to communicate outside of the container, for example to save data on your the local machine.
 
@@ -258,19 +262,19 @@ $ docker run -d -p 8787:8787 -e PASSWORD=mypassword -v ~/Desktop:/home/rstudio/ 
 ```
 
 
-## Continuous Integration (Git & Travis)
+### Continuous Integration (Git & Travis)
 
 To create a nice workflow, it's possible to automate the Docker build process. Once code is stored on Github, the docker image can be remotely built when the code is updated. 
 
 Two options for this are to use Docker Hub or Travis CI
 
-### Docker Hub
+#### Docker Hub
 
 Docker Hub which is used for storing and sharing images can be linked to Github so that the image is automatically built for specific branches when code is updated.
 
 See [this article](https://docs.docker.com/docker-hub/builds/) for more information.
 
-### Travis CI
+#### Travis CI
 
 An alternative is to use [Travis CI](https://travis-ci.org/). Travis CI must also be linked to Github in order to work. As well as building the Docker image, Travis CI can also be used to build and test personal R packages.
 
