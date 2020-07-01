@@ -1,11 +1,14 @@
 services:
   - docker
+  
+branches:
+  only:
+  - master
 
 before_install:
-  
   - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
   
 script:
-  - docker build -t bolandai/sample_rstudio:travis_example -f Docker/SimpleDockerfile .
-  - docker push bolandai/sample_rstudio:travis_example
+  - docker build -t $DOCKER_USERNAME/sample_rstudio:travis_example -f Docker/SimpleDockerfile .
+  - docker push $DOCKER_USERNAME/sample_rstudio:travis_example
   
